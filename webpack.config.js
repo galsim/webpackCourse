@@ -1,10 +1,38 @@
-const path = require('path')
+const path = require("path");
+const HTMLWebpackPlugin = require("html-webpack-plugin")
+const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 
 module.exports = {
-  mode: 'development',
-  entry: './src/index.js',
+  context: path.resolve(__dirname, "src"),
+  mode: "development",
+  entry: {
+    main: "./index.js",
+    analytics: "./analytics.js"
+  },
   output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'build')
+    filename: "[name].[contenthash].js",
+    path: path.resolve(__dirname, "build")
+  },
+  plugins: [
+    new HTMLWebpackPlugin({
+      template: "./index.html"
+    }),
+    new CleanWebpackPlugin()
+  ],
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: ["style-loader", "css-loader"]
+      },
+      {
+        test: /\.(png|jpg|svg|gif)$/,
+        use: ['file-loader']
+      },
+      {
+        test: /\.(ttf|woff|woff2|eot)$/,
+        use: ['file-loader']
+      }
+    ]
   }
-}
+};
