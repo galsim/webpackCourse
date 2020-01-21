@@ -5,6 +5,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const OptimazeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin')
 const TerserWebpackPlugin = require('terser-webpack-plugin')
+const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer')
 
 
 const isDev = process.env.NODE_ENV === 'development'
@@ -28,18 +29,16 @@ const optimization = () => {
 
 const filename = ext => isDev ? `[name].${ext}` : `[name].[hash].${ext}`
 
-const scssLoaders = (extra) => {
+const cssLoaders = extra => {
   const loaders = [
-    [
-      {
-        loader: MiniCssExtractPlugin.loader,
-        options: {
-          hmr: isDev,
-          reloadAll: true
-        }
+    {
+      loader: MiniCssExtractPlugin.loader,
+      options: {
+        hmr: isDev,
+        reloadAll: true
       },
-      "css-loader",
-    ]
+    },
+    'css-loader'
   ]
 
   if (extra) {
@@ -49,21 +48,62 @@ const scssLoaders = (extra) => {
   return loaders
 }
 
-const babelOption = (preset) => {
-
-  const options = {
-    presets: ['@babel/preset-env'],
-    plugins: ['@babel/plugin-proposal-class-properties']
+const babelOptions = preset => {
+  const opts = {
+    presets: [
+      '@babel/preset-env'
+    ],
+    plugins: [
+      '@babel/plugin-proposal-class-properties'
+    ]
   }
 
-  if(preset) {
-    options.presets.push(preset)
+  if (preset) {
+    opts.presets.push(preset)
   }
 
-  return options
+  return opts
 }
 
-console.log(babelOption('preset-react'))
+const jsLoaders = () => {
+  const loaders = [{
+    loader: 'babel-loader',
+    options: babelOptions()
+  }]
+
+  if (isDev) {
+    loaders.push('eslint-loader')
+  }
+  return loaders
+}
+
+const plugins = () => {
+  const base = [
+    new HTMLWebpackPlugin({
+      template: "./index.html",
+      minify: {
+        collapseWhitespace: isProd
+      }
+    }),
+    new CleanWebpackPlugin(),
+    new CopyWebpackPlugin([
+      {
+        from: path.resolve(__dirname, 'src/favicon.ico'),
+        to: path.resolve(__dirname, 'build')
+      }
+    ]),
+    new MiniCssExtractPlugin({
+      filename: filename('css')
+    })
+  ]
+
+  if (isProd) {
+    base.push(new BundleAnalyzerPlugin())
+  }
+
+  return base
+}
+
 
 module.exports = {
   context: path.resolve(__dirname, "src"),
@@ -88,66 +128,21 @@ module.exports = {
     port: 3000,
     hot: isDev
   },
-  plugins: [
-    new HTMLWebpackPlugin({
-      template: "./index.html",
-      minify: {
-        collapseWhitespace: isProd
-      }
-    }),
-    new CleanWebpackPlugin(),
-    new CopyWebpackPlugin([
-      {
-        from: path.resolve(__dirname, 'src/favicon.ico'),
-        to: path.resolve(__dirname, 'build')
-      }
-    ]),
-    new MiniCssExtractPlugin({
-      filename: filename('css')
-    })
-  ],
+  devtool: isDev ? 'source-map': '',
+  plugins: plugins(),
   module: {
     rules: [
       {
         test: /\.css$/,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-            options: {
-              hmr: isDev,
-              reloadAll: true
-            }
-          },
-          "css-loader",
-        ]
+        use: cssLoaders()
       },
       {
         test: /\.less$/,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-            options: {
-              hmr: isDev,
-              reloadAll: true
-            }
-          },
-          "css-loader",
-          'less-loader'
-        ]
+        use: cssLoaders('less-loader')
       },
       {
         test: /\.s[ac]ss$/,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-            options: {
-              hmr: isDev,
-              reloadAll: true
-            }
-          },
-          "css-loader",
-          'sass-loader'
-        ]
+        use: cssLoaders('sass-loader')
       },
       {
         test: /\.(png|jpg|svg|gif)$/,
@@ -168,17 +163,14 @@ module.exports = {
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        loader: {
-          loader: 'babel-loader',
-          options: babelOption()
-        }
+        use: jsLoaders()
       },
       {
         test: /\.ts$/,
         exclude: /node_modules/,
         loader: {
           loader: 'babel-loader',
-          options: babelOption('@babel/preset-typescript')
+          options: babelOptions('@babel/preset-typescript')
         }
       },
       {
@@ -186,9 +178,9 @@ module.exports = {
         exclude: /node_modules/,
         loader: {
           loader: 'babel-loader',
-          options: babelOption('preset-react')
+          options: babelOptions('@babel/preset-react')
         }
-      },
+      }
     ]
   }
 };
