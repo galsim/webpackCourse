@@ -7,7 +7,7 @@
   margin: 0 auto;
 }
 
-h1 {
+* {
   text-align: center;
   font-family: "Roboto", sans-serif;
 }
@@ -18,4 +18,8 @@ h1 {
   height: 200px;
   background-size: cover;
   margin: 0 auto;
+}
+
+.code {
+  color: red;
 }
